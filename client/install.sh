@@ -21,7 +21,7 @@ REPO="."
 ENDPOINT=""
 KEY=""
 FORCE=0
-RAW="https://raw.githubusercontent.com/OWNER/ai-usage-monitor/main/client"
+RAW="https://raw.githubusercontent.com/leminhohoho/ai-usage-monitoring/main/client"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in

@@ -17,6 +17,33 @@ DEVS = {
     "carol": {"key": "aum_carol", "repo": "jobbot-ingest",   "source": "codex",        "model": "gpt-5-codex"},
 }
 
+# each topic keeps its own thread: follow-up question -> assistant reply.
+# binding them per-topic is what makes a session read like one conversation.
+THREAD = {
+    "pagination": [("Where does that get called from?", "Two call sites: the employer dashboard and the CSV export. Both are paginated now; the export streams page by page."),
+                   ("Does that change the public response shape?", "Yes - it adds `page`, `per_page`, `total`. Additive, so old clients keep working.")],
+    "docker": [("What's the rollback if this breaks prod?", "Nothing in prod uses this image yet; rollback is reverting the base-image line in the Dockerfile."),
+               ("Can you add a test for the failure path?", "The build itself is the test; I added a CI job that builds the image on every PR touching the Dockerfile.")],
+    "di": [("Where does that get called from?", "`main.py` wires it once at startup; everything downstream takes the injected session factory."),
+           ("Does that change the public response shape?", "No, it's internal only. Behaviour is identical; tests just get a fixture instead of a global.")],
+    "retry": [("Why is that slow on large payloads?", "The backoff sleeps are real in the current code. Injecting the sleep makes the suite ~40s faster."),
+              ("Can you add a test for the failure path?", "Added: exhausted retries raise `RetriesExhausted` with the last error attached.")],
+    "rerender": [("Where does that get called from?", "`FiltersPanel` renders it on every keystroke via the controlled input."),
+                 ("Show me the diff.", "`useMemo` around the filter object, dependency array narrowed to the two primitive fields it actually reads.")],
+    "migration": [("What's the rollback if this breaks prod?", "It's additive only - a nullable column and an index. Rollback is dropping the index; no data loss."),
+                  ("Why is that slow on large payloads?", "The backfill locks the table for ~40s on the second index build; batch it at 5k rows to keep it under a second.")],
+    "logging": [("What happens on a 403 here?", "The rejection is logged with the trace_id, so you can follow one request end to end through auth."),
+                ("Can you make the error message clearer?", "The 403 body now names the missing header instead of a bare 'forbidden'.")],
+    "precommit": [("Why is that slow on large payloads?", "mypy is the slow part; it's scoped to changed files so it stays under a few seconds."),
+                  ("Show me the diff.", "New `.pre-commit-config.yaml` plus a `make lint` target that runs the same checks by hand.")],
+    "403": [("Where does that get called from?", "The auth middleware, before routing - so it fires for every endpoint."),
+            ("Can you make the error message clearer?", "Body now returns `missing_header: X-Tenant` with a link to the auth docs.")],
+    "queue": [("What's the rollback if this breaks prod?", "Cron stays running in parallel for one sprint, so rollback is flipping a flag."),
+              ("Why is that slow on large payloads?", "It isn't the queue - it's the per-job DB round trip. Batch the enqueue, not the processing.")],
+    "flaky": [("Can you add a test for the failure path?", "Added: a seeded test that injects a clock, so ordering is deterministic."),
+              ("Show me the diff.", "Replaced `time.time()` with an injected clock and sorted the dict iteration that made ordering unstable.")],
+}
+
 TOPICS = [
  ("pagination", "Add an endpoint that returns the weekly job counts per employer, paginated.",
   "I'll look at the endpoint layer first. Changes: 1) add `page`/`per_page` 2) push the "
@@ -96,8 +123,12 @@ def main():
                 cwd = HERE / "repos" / cfg["repo"]
                 rec(dev, cfg, cwd, t, "--type", "session.start", "--session", sid,
                     "--model", cfg["model"])
-                topics = random.sample(TOPICS, random.randint(2, 4))
-                for name, p, reply in topics:
+                # one topic per session, followed by its own thread -> the transcript reads
+                # like one conversation instead of unrelated questions glued together
+                name, prompt, reply = random.choice(TOPICS)
+                thread = THREAD.get(name, [])
+                turns = [(prompt, reply)] + thread
+                for p, reply in turns:
                     t += timedelta(minutes=random.randint(1, 6))
                     rec(dev, cfg, cwd, t, "--type", "message", "--session", sid, "--role", "user",
                         "--content", p, "--tokens-in", str(random.randint(200, 1400)),

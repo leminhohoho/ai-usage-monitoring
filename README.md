@@ -1,6 +1,10 @@
 # ai-usage-monitor
 
 Collect **raw AI coding-agent sessions per engineer** and show them in a dashboard.
+
+![dashboard](docs/dashboard.png)
+
+Collect **raw AI coding-agent sessions per engineer** and show them in a dashboard.
 Scope for now: store + display only. No task monitoring, no evaluation, no scoring.
 
 ## Architecture (deliberately three small pieces)
@@ -58,7 +62,7 @@ Dashboard: https://ubuntu.taila0f05e.ts.net:9001/ · demo data + how it's genera
 ./client/install.sh --endpoint https://monitor.internal:9001 --key aum_xxxxx
 
 # or straight off GitHub, no checkout
-curl -fsSL https://raw.githubusercontent.com/OWNER/ai-usage-monitor/main/client/install.sh \
+curl -fsSL https://raw.githubusercontent.com/leminhohoho/ai-usage-monitoring/main/client/install.sh \
   | bash -s -- --endpoint https://monitor.internal:9001 --key aum_xxxxx
 ```
 
