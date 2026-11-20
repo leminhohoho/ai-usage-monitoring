@@ -4,7 +4,6 @@ Collect **raw AI coding-agent sessions per engineer** and show them in a dashboa
 
 ![dashboard](docs/dashboard.png)
 
-Collect **raw AI coding-agent sessions per engineer** and show them in a dashboard.
 Scope for now: store + display only. No task monitoring, no evaluation, no scoring.
 
 ## Architecture (deliberately three small pieces)
