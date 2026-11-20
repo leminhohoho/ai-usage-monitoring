@@ -6,6 +6,8 @@ Collect **raw AI coding-agent sessions per engineer** and show them in a dashboa
 
 Scope for now: store + display only. No task monitoring, no evaluation, no scoring.
 
+Full design notes: [DESIGN.md](DESIGN.md)
+
 ## Architecture (deliberately three small pieces)
 
 ```
