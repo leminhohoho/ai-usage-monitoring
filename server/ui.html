@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>AI usage</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#faf9f5;--panel:#fff;--ink:#1f1e1c;--muted:#6b6862;--line:#e7e3da;--accent:#c96442;--ok:#3f7d5a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 ui-sans-serif,-apple-system,"Segoe UI",Inter,sans-serif}
+header{padding:20px 26px;border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:baseline;background:var(--bg);position:sticky;top:0;z-index:5}
+h1{font-size:17px;margin:0;font-weight:600;letter-spacing:.2px}
+.sub{color:var(--muted);font-size:13px}
+.wrap{display:grid;grid-template-columns:minmax(0,1fr) 460px;gap:0;height:calc(100vh - 61px)}
+.left{overflow:auto;padding:18px 26px}
+.right{border-left:1px solid var(--line);overflow:auto;padding:18px 22px;background:var(--panel);min-width:0}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.card .k{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.card .v{font-size:22px;font-weight:600;margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.05em;padding:8px 8px;border-bottom:1px solid var(--line)}
+td{padding:8px;border-bottom:1px solid #f2efe8;vertical-align:top}
+tr.row{cursor:pointer}tr.row:hover{background:#f6f3ec}
+.pill{display:inline-block;font-size:11px;padding:1px 7px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
+.pill.claude{color:#8a4b2a;border-color:#e6cbb9;background:#fbf1ea}
+.pill.codex{color:#2f5d8a;border-color:#c9d8e6;background:#eef3f8}
+input[type=search]{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--panel);font:inherit;margin-bottom:14px}
+.muted{color:var(--muted)}
+.msg{padding:10px 0;border-bottom:1px solid #f2efe8}
+.msg .who{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:3px}
+.msg.user .body{color:#1f1e1c}.msg.assistant .body{color:#3b3936}
+pre{white-space:pre-wrap;margin:0;font:13.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600;margin:22px 0 8px}
+.bar{height:6px;background:#efeae0;border-radius:99px;overflow:hidden;margin-top:6px}
+.bar>i{display:block;height:100%;background:var(--accent)}
+.empty{color:var(--muted);padding:26px 4px}
+td.s-meta,td.s-src,td.s-repo,td.s-when{white-space:nowrap}
+td.s-prompt{min-width:180px}
+.tool{display:flex;gap:8px;align-items:baseline;font:12.5px/1.5 ui-monospace,Menlo,monospace;
+  padding:3px 0 3px 10px;border-left:2px solid #e2ddd2;margin:2px 0;color:#55524d}
+.tool.err{border-left-color:#d9b3ae;background:#fdf4f2}
+.tool .tname{color:#8a4b2a;font-weight:600}
+.tool .ttarget{color:#3b3936;word-break:break-all}
+.tool .errbadge{color:#b4453a;font-size:11px}
+.session-split{border-top:1px solid var(--line);margin:14px 0}
+.tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.back{display:none}
+@media (max-width:860px){
+  header{padding:14px 16px;gap:10px;flex-wrap:wrap}
+  .wrap{grid-template-columns:minmax(0,1fr);height:auto}
+  .left{padding:14px 14px 90px;overflow:visible}  /* let sticky search work against the page */
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .card{padding:10px 11px}
+  .card .v{font-size:19px}
+  /* the reading pane becomes a full-screen sheet that slides over the list */
+  .right{position:fixed;inset:0;z-index:40;border-left:0;padding:14px 16px 40px;
+        transform:translateX(100%);transition:transform .22s ease;overflow:auto;
+        background:var(--bg);will-change:transform}
+  body.reading .right{transform:translateX(0)}
+  body.reading{overflow:hidden}
+  .back{display:inline-flex;align-items:center;gap:6px;margin-bottom:10px;
+        border:1px solid var(--line);background:var(--panel);color:var(--ink);
+        border-radius:8px;padding:7px 12px;font:inherit;font-size:14px}
+  table{font-size:12.5px}
+  th{padding:7px 5px}td{padding:7px 5px}
+  .hide-sm{display:none}
+  th,td{white-space:nowrap}
+  /* per-person: drop the bar, keep the numbers */
+  .bar-cell{display:none}
+  /* sessions: table becomes a list of cards — no horizontal scrolling on a phone */
+  .sessions-table thead{display:none}
+  .sessions-table, .sessions-table tbody, .sessions-table tr, .sessions-table td{display:block;width:auto}
+  .sessions-table tr.row{border:1px solid var(--line);border-radius:10px;background:var(--panel);
+        padding:10px 12px;margin-bottom:8px}
+  .sessions-table td{border:0;padding:1px 0;font-size:13px}
+  .sessions-table td.s-when{color:var(--muted);font-size:12px}
+  .sessions-table td.s-who{font-weight:600;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  /* metadata lives on one wrapped line, so a card stays three lines tall */
+  .sessions-table td.s-meta,.sessions-table td.s-src,.sessions-table td.s-repo{
+        display:inline;color:var(--muted);font-size:12.5px;margin-right:10px}
+  .sessions-table td.s-repo .br{font-size:11.5px;opacity:.75}
+  /* keep search reachable while scrolling a long list */
+  header{position:static}
+  #q{position:sticky;top:0;z-index:6;background:var(--bg);box-shadow:0 6px 10px -8px rgba(0,0,0,.25)}
+  .sessions-table tr.row{line-height:1.9}
+  .sessions-table td.s-who{display:inline;font-weight:600;margin-right:8px;line-height:2.2}
+  .sessions-table td.s-prompt{color:#3b3936;font-size:13px;padding-top:5px;white-space:normal;
+        display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  input[type=search]{font-size:16px} /* stops iOS zooming on focus */
+  h2{margin:18px 0 8px}
+  .msg .body,.msg pre{font-size:13px}
+}
+@media (max-width:400px){ .cards{grid-template-columns:repeat(2,minmax(0,1fr))} .card .k{font-size:10.5px} }
+</style></head><body>
+<header><h1>AI usage</h1><span class="sub" id="sub">loading…</span></header>
+<div class="wrap">
+  <div class="left">
+    <div class="cards" id="cards"></div>
+    <h2>per person</h2><div class="tablewrap" id="perdev"></div>
+    <h2>sessions</h2>
+    <input type="search" id="q" placeholder="search inside conversations (raw text)…">
+    <div class="tablewrap"><table class="sessions-table"><thead><tr><th>when</th><th>person</th><th class="hide-sm">source</th><th class="hide-sm">repo</th><th>msgs</th><th>tools</th><th>tokens</th><th>first prompt</th></tr></thead><tbody id="rows"></tbody></table></div>
+  </div>
+  <div class="right" id="detail"><div class="empty">Select a session to read the conversation.</div></div>
+</div>
+<script>
+const fmt = n => n>=1e6? (n/1e6).toFixed(1)+'M' : n>=1e3? (n/1e3).toFixed(1)+'k' : (n||0);
+const esc = s => (s??'').replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const ago = t => { const d=(Date.now()-new Date(t))/1000; return d<3600? Math.round(d/60)+'m ago' : d<86400? Math.round(d/3600)+'h ago' : Math.round(d/86400)+'d ago'; };
+let state={dev:'',source:'',q:''};
+
+async function load(){
+  const s = await (await fetch('/api/stats')).json();
+  const totSessions = s.per_dev.reduce((a,b)=>a+b.sessions,0);
+  const totTokens  = s.per_dev.reduce((a,b)=>a+b.tokens,0);
+  const devs = s.per_dev.length;
+  const days = new Set(s.per_day.map(d=>d.day)).size;
+  document.getElementById('cards').innerHTML = [
+    ['people', devs], ['sessions', totSessions], ['tokens', fmt(totTokens)], ['active days', days]
+  ].map(([k,v])=>`<div class="card"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+  document.getElementById('sub').textContent = `${devs} people · ${totSessions} sessions · ${fmt(totTokens)} tokens`;
+
+  const max = Math.max(1, ...s.per_dev.map(d=>d.tokens||0));
+  document.getElementById('perdev').innerHTML = `<table><thead><tr><th>person</th><th>sessions</th><th>tokens</th><th></th><th>last seen</th></tr></thead><tbody>` +
+    s.per_dev.map(d=>`<tr><td>${esc(d.dev)}</td><td>${d.sessions}</td><td>${fmt(d.tokens)}</td>
+      <td class="bar-cell" style="width:34%"><div class="bar"><i style="width:${100*(d.tokens||0)/max}%"></i></div></td>
+      <td class="muted">${d.last_seen?ago(d.last_seen):''}</td></tr>`).join('') + '</tbody></table>';
+
+  const qs = new URLSearchParams({dev:state.dev, source:state.source, q:state.q});
+  const rows = await (await fetch('/api/sessions?'+qs)).json();
+  document.getElementById('rows').innerHTML = rows.length? rows.map(r=>`
+    <tr class="row" data-sid="${esc(r.session_id)}">
+      <td class="muted s-when">${ago(r.ended)}</td><td class="s-who">${esc(r.dev)}<span class="hide-sm"></span></td>
+      <td class="s-src hide-sm"><span class="pill ${r.source==='codex'?'codex':'claude'}">${esc(r.source)}</span></td>
+      <td class="s-repo hide-sm">${esc(r.repo||'—')}<span class="br">${r.branch? ' · '+esc(r.branch):''}</span></td>
+      <td class="s-meta">${r.messages} msgs</td>
+      <td class="s-meta">${r.tools} tools${r.tool_errors?` <span style="color:#b4453a;font-size:11px">${r.tool_errors} err</span>`:''}</td>
+      <td class="s-meta">${fmt((r.tokens_in||0)+(r.tokens_out||0))} tok</td>
+      <td class="muted s-prompt">${esc((r.first_prompt||'').slice(0,140))}</td></tr>`).join('')
+    : `<tr><td colspan="8" class="empty">no sessions match</td></tr>`;
+  document.querySelectorAll('tr.row').forEach(tr=>tr.onclick=()=>open_(tr.dataset.sid));
+}
+
+function closeDetail(){ document.body.classList.remove('reading'); history.back(); }
+
+async function open_(sid){
+  document.body.classList.add('reading');
+  if (location.hash !== '#'+sid) history.pushState({sid}, '', '#'+sid);
+  const d = await (await fetch('/api/session/'+encodeURIComponent(sid))).json();
+  const head = d.events[0]||{};
+  const nTools = d.events.filter(e=>e.event_type.startsWith('tool.')).length;
+  document.getElementById('detail').innerHTML =
+    `<button class="back" onclick="closeDetail()">← back</button><h2>session</h2><div style="font-size:13px" class="muted">${esc(sid)}<br>${esc(head.repo||'')} · ${esc(head.model||'')} · ${d.events.length} events · ${nTools} tool calls</div>` +
+    render_events(d.events);
+}
+
+function render_events(evs){
+  const tools = evs.filter(e=>e.event_type.startsWith('tool.'));
+  const counts = {};
+  tools.forEach(e=>{ let m={}; try{m=JSON.parse(e.meta||'{}')}catch(_){}
+    const k=m.tool||'?'; counts[k]=counts[k]||{n:0,err:0}; counts[k].n++; if(m.error) counts[k].err++; });
+  let html = '';
+  if (tools.length){
+    html += `<h2>tool calls <span class="muted">(${tools.length})</span></h2>`;
+    html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">' +
+      Object.entries(counts).sort((a,b)=>b[1].n-a[1].n).map(([k,v])=>
+        `<span class="pill">${esc(k)} ${v.n}${v.err?` <span style="color:#b4453a">${v.err} err</span>`:''}</span>`).join('') + '</div>';
+  }
+  let lastUser = '';
+  html += evs.map(e=>{
+    if (e.role==='user') lastUser = e.content||'';
+    let m={}; try{m=JSON.parse(e.meta||'{}')}catch(_){}
+    if (e.event_type.startsWith('tool.')){
+      return `<div class="tool ${m.error?'err':''}">
+        <span class="tname">${esc(m.tool||'tool')}</span>
+        <span class="ttarget">${esc(m.target||'')}</span>
+        ${m.error?'<span class="errbadge">error</span>':''}
+        <span class="muted">${e.ts.slice(11,19)}</span></div>`;
+    }
+    if (e.event_type==='session.start'||e.event_type==='session.end'){
+      return `<div class="msg"><div class="who">${esc(e.event_type)} · ${esc(e.model||'')} · ${e.ts.slice(11,16)}</div></div>`;
+    }
+    return `<div class="msg ${e.role||''}">
+      <div class="who">${esc(e.role||e.event_type)} · ${esc(e.model||'')}${e.tokens_in?` · in ${e.tokens_in} / out ${e.tokens_out}`:''} · ${e.ts.slice(11,16)}</div>
+      <pre class="body">${esc(e.content||'')}</pre></div>`;
+  }).join('');
+  return html;
+}
+
+window.addEventListener('popstate', ()=>{ document.body.classList.remove('reading'); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDetail(); });
+
+let t; document.getElementById('q').oninput = e => { clearTimeout(t); t=setTimeout(()=>{state.q=e.target.value; load();},250); };
+load().then(()=>{ if(location.hash.length>1) open_(decodeURIComponent(location.hash.slice(1))); });
+</script></body></html>
