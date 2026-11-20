@@ -51,6 +51,34 @@ Dashboard: https://ubuntu.taila0f05e.ts.net:9001/ · demo data + how it's genera
 4. Retention: how long is raw text kept?
 
 
+## Install (one command per repo)
+
+```bash
+# from a checkout
+./client/install.sh --endpoint https://monitor.internal:9001 --key aum_xxxxx
+
+# or straight off GitHub, no checkout
+curl -fsSL https://raw.githubusercontent.com/OWNER/ai-usage-monitor/main/client/install.sh \
+  | bash -s -- --endpoint https://monitor.internal:9001 --key aum_xxxxx
+```
+
+It is idempotent and only touches what it must:
+
+| step | effect |
+|---|---|
+| copies `ai_usage_client.py`, `send-usage.sh` | into the repo root |
+| writes `.env.ai-usage` | only if absent (`--force` to overwrite), `chmod 600` |
+| merges `.claude/settings.json` | adds 4 hook events, **keeps** any hooks you already have |
+| appends to `.gitignore` | `.env.ai-usage`, `.ai-usage/` |
+
+Then, and only then, does anything get sent — by hand:
+
+```bash
+./send-usage.sh --status    # how many events are waiting
+./send-usage.sh --dry-run   # show one without sending
+./send-usage.sh             # push
+```
+
 ## Delivery model (how events reach the server)
 
 | step | who | network? |
